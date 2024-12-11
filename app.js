@@ -1,7 +1,8 @@
 const http = require("http");
-const PORT = 8080;
+const path = require("path");
+const fs = require("fs");
 
-const users = []; // datebase
+const PORT = 8080;
 
 const server = http.createServer((req, res) => {
   const { url, method } = req;
@@ -9,8 +10,8 @@ const server = http.createServer((req, res) => {
   if (url === "/" && method === "GET") {
     res.write(`<div> Welcome In Home Page</div>`);
   }
-
-  if (url === "/add-user" && method === "GET") {
+  //
+  else if (url === "/add-user" && method === "GET") {
     res.setHeader("Content-Type", "text/html");
     res.write(
       `
@@ -22,7 +23,7 @@ const server = http.createServer((req, res) => {
     );
   }
   // payload // body
-  if (url === "/users" && method === "POST") {
+  else if (url === "/users" && method === "POST") {
     // req  ::> payload : body (userName=omar)
     let payload = [];
 
@@ -34,18 +35,34 @@ const server = http.createServer((req, res) => {
       const data = Buffer.concat(payload).toString();
       //  userName=o
       const userName = data.split("=")[1]; // [userName , o]
-      users.push(userName);
-      res.end();
+      // read file in this place :
+      const usersFile = path.join(__dirname, "./users.json");
+      const usersData = fs.readFileSync(usersFile, { encoding: "utf-8" });
+      const usersParsing = JSON.parse(usersData);
+      usersParsing.push(userName);
+      const usersText = JSON.stringify(usersParsing);
+      fs.writeFileSync(usersFile, usersText);
     });
 
-    //
-    res.write(`<div>In this Locatio will add new User to Users</div>`);
+    // res.writeHead(302, { Location: "/users" }); // 302 Found
+    // return res.end();
+    res.end();
   }
+  //
+  else if (url === "/users" && method === "GET") {
+    res.writeHead(200, { "Content-Type": "text/html" });
 
-  if (url === "/users" && method === "GET") {
+    const usersFile = path.join(__dirname, "./users.json");
+    const usersData = fs.readFileSync(usersFile, { encoding: "utf-8" });
+    const users = JSON.parse(usersData);
+
     res.write(`${users.map((user) => `<div>${user}</div>`)}`);
   }
-
+  // exeption error
+  else {
+    res.write(`<div>Error Page</div>`);
+    return res.end();
+  }
   return res.end();
 });
 
